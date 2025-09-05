@@ -1,13 +1,16 @@
 const form = document.getElementById('formProduto');
 const lista = document.getElementById('listaProdutos');
 
+let idEditando = null;
+
 const mostrarProdutos = (produtos) => {
   lista.innerHTML = '';
   produtos.forEach(prod => {
     const li = document.createElement('li');
     li.innerHTML = `
-      ${prod.nome} - R$ ${prod.preco} - ${prod.categoria}
+      ${prod.nome} - Preço R$ ${prod.preco} - ${prod.categoria}
       <button onclick="deletarProduto(${prod.id})">Deletar</button>
+      <button onclick="editarProduto(${prod.id})">Editar</button>
     `;
     lista.appendChild(li);
   });
@@ -39,17 +42,41 @@ form.addEventListener('submit', async (e) => {
     estoque: parseInt(form.estoque.value)
   };
 
-  const res = await fetch('/api/produtos', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(produto)
-  });
+  if (idEditando) {
+    // Atualizar produto existente
+    const res = await fetch(`/api/produtos/${idEditando}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(produto)
+    });
 
-  const novo = await res.json();
-  const produtos = carregarLocal();
-  produtos.push(novo);
-  salvarLocal(produtos);
-  mostrarProdutos(produtos);
+    if (!res.ok) {
+      alert('Erro ao atualizar o produto');
+      return;
+    }
+
+    const atualizado = await res.json();
+    const produtos = carregarLocal().map(p =>
+      p.id === idEditando ? atualizado : p
+    );
+    salvarLocal(produtos);
+    mostrarProdutos(produtos);
+    idEditando = null;
+  } else {
+    // Criar novo produto
+    const res = await fetch('/api/produtos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(produto)
+    });
+
+    const novo = await res.json();
+    const produtos = carregarLocal();
+    produtos.push(novo);
+    salvarLocal(produtos);
+    mostrarProdutos(produtos);
+  }
+
   form.reset();
 });
 
@@ -58,6 +85,20 @@ const deletarProduto = async (id) => {
   const produtos = carregarLocal().filter(p => p.id !== id);
   salvarLocal(produtos);
   mostrarProdutos(produtos);
+};
+
+const editarProduto = (id) => {
+  const produtos = carregarLocal();
+  const prod = produtos.find(p => p.id === id);
+  if (!prod) return;
+
+  form.nome.value = prod.nome;
+  form.codigo.value = prod.codigo;
+  form.preco.value = prod.preco;
+  form.categoria.value = prod.categoria;
+  form.estoque.value = prod.estoque;
+
+  idEditando = id;
 };
 
 window.onload = carregarProdutos;
