@@ -43,7 +43,6 @@ form.addEventListener('submit', async (e) => {
   };
 
   if (idEditando) {
-    // Atualizar produto existente
     const res = await fetch(`/api/produtos/${idEditando}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -63,7 +62,6 @@ form.addEventListener('submit', async (e) => {
     mostrarProdutos(produtos);
     idEditando = null;
   } else {
-    // Criar novo produto
     const res = await fetch('/api/produtos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
